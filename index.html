@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Son Car Group — Tối ưu lộ trình đa điểm</title>
+  <meta name="description" content="Son Car Group - Hệ thống tối ưu hóa lộ trình đa điểm" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- API Key Modal (ẩn — key đã khóa cứng trong secrets.js) -->
+<div class="modal-backdrop hidden" id="modal-backdrop">
+  <div class="modal" id="modal-apikey">
+    <div class="modal-icon">🗹️</div>
+    <h2 class="modal-title">Nhập VietMap API Key</h2>
+    <p class="modal-desc">Lấy API key miễn phí tại <a href="https://maps.vietmap.vn" target="_blank">maps.vietmap.vn</a></p>
+    <input type="text" id="apikey-input" class="modal-input" placeholder="Dán API key của bạn vào đây..." />
+    <button class="modal-btn" id="btn-save-apikey">✅ Xác nhận &amp; Bắt đầu</button>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-brand">
+    <div class="header-logo">
+      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="18" cy="18" r="18" fill="url(#lg1)"/>
+        <path d="M10 22 L18 10 L26 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <circle cx="10" cy="22" r="2.5" fill="white"/>
+        <circle cx="18" cy="10" r="2.5" fill="white"/>
+        <circle cx="26" cy="22" r="2.5" fill="white"/>
+        <defs><linearGradient id="lg1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#00d4ff"/><stop offset="1" stop-color="#7b2ff7"/>
+        </linearGradient></defs>
+      </svg>
+    </div>
+    <span class="header-title">Son Car <strong>Group</strong></span>
+  </div>
+  <div class="header-actions">
+    <span class="badge badge-ga">🧬 Genetic Algorithm</span>
+    <span class="badge badge-vm">🗺️ VietMap API</span>
+    <button class="btn-key" id="btn-change-key" title="Đổi API Key" style="display:none">🔑</button>
+  </div>
+</header>
+
+<!-- App Layout -->
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-scroll">
+
+      <!-- Origin -->
+      <div class="panel" id="panel-origin">
+        <div class="panel-header">
+          <div class="marker-badge origin-badge">A</div>
+          <span class="panel-title">Điểm xuất phát</span>
+        </div>
+        <div class="input-group">
+          <input type="text" id="origin-input" class="loc-input" placeholder="Tìm địa chỉ hoặc click bản đồ..." autocomplete="off" />
+          <button class="btn-icon-sm" id="btn-origin-gps" title="Dùng vị trí hiện tại">📍</button>
+          <div class="suggestions-box" id="origin-suggestions"></div>
+        </div>
+      </div>
+
+      <!-- Stops B -->
+      <div class="panel" id="panel-stops">
+        <div class="panel-header">
+          <div class="marker-badge stop-badge">B</div>
+          <span class="panel-title">Điểm đón khách <span class="count-badge" id="stop-count">0</span></span>
+          <button class="btn-add" id="btn-add-stop">＋ Thêm</button>
+        </div>
+        <div class="stops-list" id="stops-list">
+          <div class="stops-empty" id="stops-empty">
+            <span>Chưa có điểm đón khách</span><br/>
+            <small>Nhấn "+ Thêm" hoặc click bản đồ</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dropoffs C -->
+      <div class="panel" id="panel-dropoffs">
+        <div class="panel-header">
+          <div class="marker-badge dropoff-badge">C</div>
+          <span class="panel-title">Điểm trả khách <span class="count-badge dropoff-count-badge" id="dropoff-count">0</span></span>
+          <button class="btn-add btn-add-dropoff" id="btn-add-dropoff">＋ Thêm</button>
+        </div>
+        <div class="stops-list" id="dropoffs-list">
+          <div class="stops-empty" id="dropoffs-empty">
+            <span>Chưa có điểm trả khách</span><br/>
+            <small>Nhấn "+ Thêm" hoặc click bản đồ</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings (collapsible) -->
+      <div class="panel panel-collapsible">
+        <div class="panel-header collapsible-trigger" id="settings-trigger">
+          <span class="panel-title">⚙️ Cài đặt</span>
+          <span class="chevron" id="settings-chevron">▾</span>
+        </div>
+        <div class="collapsible-body" id="settings-body">
+          <div class="setting-row">
+            <label class="setting-label">Phương tiện</label>
+            <div class="vehicle-selector" id="vehicle-selector">
+              <button class="veh-btn active" data-vehicle="car">🚗 Ô tô</button>
+              <button class="veh-btn" data-vehicle="bike">🏉️ Xe máy</button>
+              <button class="veh-btn" data-vehicle="foot">🚶 Đi bộ</button>
+            </div>
+          </div>
+          <!-- Auto GA params info -->
+          <div class="setting-row ga-auto-info" id="ga-auto-info">
+            <label class="setting-label">Thông số GA (tự động)</label>
+            <div class="ga-info-box">
+              <span>🦸 Thế hệ: <strong id="ga-gen-display">—</strong></span>
+              <span>👥 Quần thể: <strong id="ga-pop-display">—</strong></span>
+            </div>
+            <div class="ga-info-note">Tự điều chỉnh theo số điểm</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Optimize Button -->
+      <button class="btn-optimize" id="btn-optimize" disabled>
+        <span>🧬 Tối ưu hóa lộ trình</span>
+      </button>
+      <button class="btn-reset" id="btn-reset">🔄 Làm mới</button>
+
+      <!-- Progress -->
+      <div class="progress-panel" id="progress-panel" hidden>
+        <div class="progress-label-row">
+          <span>Đang chạy GA...</span>
+          <span id="prog-gen-label">0 / 500</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="prog-fill"></div>
+        </div>
+        <div class="progress-meta">
+          <span>Chi phí tốt nhất: <strong id="prog-best">—</strong></span>
+          <span id="prog-pct">0%</span>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="results-panel" id="results-panel" hidden>
+        <div class="results-title">✅ Lộ trình tối ưu</div>
+        <div class="results-stats-row">
+          <div class="stat-card">
+            <div class="stat-value" id="res-distance">—</div>
+            <div class="stat-label">Tổng quãng đường</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="res-time">—</div>
+            <div class="stat-label">Thời gian</div>
+          </div>
+        </div>
+        <!-- Phase B -->
+        <div class="phase-label phase-b" id="phase-b-label" hidden>🚚 Giao hàng (B)</div>
+        <div class="route-sequence" id="route-sequence-b"></div>
+        <!-- Phase C -->
+        <div class="phase-label phase-c" id="phase-c-label" hidden>🏁 Trả khách (C)</div>
+        <div class="route-sequence" id="route-sequence-c"></div>
+      </div>
+
+    </div><!-- /sidebar-scroll -->
+  </aside>
+
+  <!-- Map -->
+  <main class="map-wrap">
+    <div id="map"></div>
+    <div class="map-hint" id="map-hint">
+      💡 Click bản đồ để đặt điểm xuất phát
+    </div>
+    <div class="map-legend" id="map-legend" hidden>
+      <div class="legend-item"><span class="legend-dot origin-dot"></span> Xuất phát</div>
+      <div class="legend-item"><span class="legend-dot stop-dot"></span> Điểm dừng</div>
+    </div>
+  </main>
+
+</div><!-- /app-layout -->
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/secrets.js"></script>
+<script src="js/config.js"></script>
+<script src="js/uiManager.js"></script>
+<script src="js/mapManager.js"></script>
+<script src="js/matrixManager.js"></script>
+<script src="js/routeManager.js"></script>
+<script src="js/nearbyManager.js"></script>
+<script src="js/geneticAlgorithm.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
