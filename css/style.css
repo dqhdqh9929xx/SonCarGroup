@@ -658,3 +658,196 @@ html, body {
   font-size: .72rem; color: var(--text-muted);
   margin-top: 5px; font-style: italic;
 }
+
+/* ════════════════════════════════════════════
+   NAVIGATION MODE
+════════════════════════════════════════════ */
+
+/* Sidebar ẩn khi vào chế độ dẫn đường */
+.sidebar.nav-hidden {
+  transform: translateX(-100%);
+  min-width: 0; width: 0;
+  transition: transform .35s cubic-bezier(.4,0,.2,1),
+              width .35s cubic-bezier(.4,0,.2,1);
+  overflow: hidden;
+}
+.sidebar {
+  transition: transform .35s cubic-bezier(.4,0,.2,1),
+              width .35s cubic-bezier(.4,0,.2,1);
+}
+
+/* Nút bắt đầu di chuyển */
+.btn-start-nav {
+  width: 100%; margin-top: 12px;
+  padding: 14px;
+  background: linear-gradient(135deg, #00e676, #00b050);
+  border: none; border-radius: var(--radius);
+  color: #fff; font-family: 'Outfit', sans-serif;
+  font-size: 1rem; font-weight: 700; letter-spacing: .02em;
+  cursor: pointer; transition: var(--trans);
+  box-shadow: 0 4px 20px rgba(0,230,118,.3);
+  position: relative; overflow: hidden;
+}
+.btn-start-nav::after {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(255,255,255,.15);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .3s ease;
+}
+.btn-start-nav:hover::after { transform: scaleX(1); }
+.btn-start-nav:active { transform: scale(.98); }
+
+/* ── Nav HUD container ── */
+.nav-hud {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;  /* pass-through cho bản đồ */
+  display: flex; flex-direction: column;
+  justify-content: space-between;
+}
+.nav-hud.hidden { display: none; }
+
+/* ── Top instruction bar ── */
+.nav-instruction-bar {
+  pointer-events: all;
+  display: flex; align-items: center; gap: 16px;
+  margin: 14px 14px 0;
+  padding: 16px 18px;
+  background: rgba(10,14,26,.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0,230,118,.3);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(0,230,118,.1);
+  animation: navSlideDown .35s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes navSlideDown {
+  from { opacity:0; transform: translateY(-20px); }
+  to   { opacity:1; transform: none; }
+}
+
+.nav-turn-icon {
+  font-size: 2.8rem; line-height: 1;
+  min-width: 56px; text-align: center;
+  filter: drop-shadow(0 0 8px rgba(0,230,118,.5));
+  transition: all .3s cubic-bezier(.34,1.56,.64,1);
+}
+
+.nav-instruction-text { flex: 1; }
+.nav-dist {
+  font-size: 1.8rem; font-weight: 800;
+  background: linear-gradient(135deg, #00e676, #00d4ff);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  line-height: 1;
+}
+.nav-street {
+  font-size: .88rem; color: var(--text-muted);
+  margin-top: 4px; font-weight: 500;
+}
+
+.nav-exit-btn {
+  pointer-events: all;
+  background: rgba(255,82,82,.15);
+  border: 1px solid rgba(255,82,82,.3);
+  border-radius: 50%; width: 38px; height: 38px;
+  color: var(--error); font-size: 1rem; font-weight: 700;
+  cursor: pointer; transition: var(--trans);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.nav-exit-btn:hover {
+  background: rgba(255,82,82,.3);
+  transform: scale(1.1);
+}
+
+/* ── Bottom stats bar ── */
+.nav-bottom-bar {
+  pointer-events: all;
+  display: flex; align-items: center; justify-content: space-around;
+  margin: 0 14px 14px;
+  padding: 14px 20px;
+  background: rgba(10,14,26,.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 -4px 32px rgba(0,0,0,.4);
+  animation: navSlideUp .35s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes navSlideUp {
+  from { opacity:0; transform: translateY(20px); }
+  to   { opacity:1; transform: none; }
+}
+
+.nav-stat { text-align: center; flex: 1; }
+.nav-stat-value {
+  font-size: 1.15rem; font-weight: 800;
+  color: var(--text);
+}
+.nav-stat-label {
+  font-size: .7rem; color: var(--text-muted);
+  margin-top: 3px; font-weight: 500;
+}
+.nav-stat-divider {
+  width: 1px; height: 32px;
+  background: var(--border);
+}
+
+/* ── Rerouting pill ── */
+.nav-rerouting {
+  pointer-events: none;
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255,215,64,.15);
+  border: 1px solid rgba(255,215,64,.4);
+  border-radius: 30px;
+  padding: 12px 24px;
+  font-size: .9rem; font-weight: 600; color: var(--warn);
+  backdrop-filter: blur(12px);
+  animation: reroutePulse 1s ease-in-out infinite;
+}
+@keyframes reroutePulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .6; }
+}
+
+/* ── User position pulse (keyframe for inline style) ── */
+@keyframes navPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(0,230,118,.3); }
+  50%       { box-shadow: 0 0 0 10px rgba(0,230,118,.1); }
+}
+
+/* ── Nav zoom + re-center controls ── */
+.nav-zoom-controls {
+  pointer-events: all;
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.nav-zoom-btn {
+  width: 44px; height: 44px;
+  background: rgba(10,14,26,.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text); font-size: 1.3rem; font-weight: 700;
+  cursor: pointer; transition: var(--trans);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+}
+.nav-zoom-btn:hover { background: rgba(0,212,255,.15); border-color: var(--cyan); color: var(--cyan); }
+.nav-zoom-btn:active { transform: scale(.93); }
+
+.nav-recenter-btn {
+  width: 44px; height: 44px;
+  background: rgba(0,230,118,.15);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0,230,118,.4);
+  border-radius: 12px; font-size: 1.2rem;
+  cursor: pointer; transition: var(--trans);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+  margin-top: 4px;
+}
+.nav-recenter-btn:hover { background: rgba(0,230,118,.3); }

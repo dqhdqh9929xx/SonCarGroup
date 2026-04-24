@@ -154,44 +154,83 @@ const UI = (() => {
     document.getElementById('res-distance').textContent = km;
     document.getElementById('res-time').textContent     = timeStr;
 
-    function buildSeq(seqEl, locations, labelFn, numClass) {
+    /**
+     * Build a sequence list for one phase.
+     * @param {HTMLElement} seqEl      - container element
+     * @param {object}      startPoint - { address } — first node shown
+     * @param {string}      startLabel - label text for the start badge (e.g. 'A' or 'B3')
+     * @param {string}      startStyle - inline style for start badge
+     * @param {object[]}    locations  - ordered stops in this phase
+     * @param {function}    labelFn    - (index) => badge label string
+     * @param {string}      numClass   - CSS class for stop badges
+     */
+    function buildSeq(seqEl, startPoint, startLabel, startStyle, locations, labelFn, numClass) {
       seqEl.innerHTML = '';
-      // Origin as first step
-      if (locations.length > 0) {
-        const originStep = document.createElement('div');
-        originStep.className = 'route-step';
-        originStep.innerHTML = `
-          <div class="route-step-num" style="background:linear-gradient(135deg,#00d4ff,#0099cc)">A</div>
-          <div class="route-step-name">${origin.address || 'Điểm xuất phát'}</div>`;
-        seqEl.appendChild(originStep);
-      }
+
+      // ── Start node ──
+      const startStep = document.createElement('div');
+      startStep.className = 'route-step';
+      startStep.innerHTML = `
+        <div class="route-step-num" style="${startStyle}">${startLabel}</div>
+        <div class="route-step-name">${startPoint.address || 'Điểm xuất phát'}</div>`;
+      seqEl.appendChild(startStep);
+
+      // ── Stop nodes ──
       locations.forEach((loc, i) => {
-        const arrow = document.createElement('div');
-        arrow.className = 'route-step';
-        arrow.innerHTML = `
+        const step = document.createElement('div');
+        step.className = 'route-step';
+        step.innerHTML = `
+          <span class="route-step-arrow">▼</span>
           <div class="route-step-num ${numClass}">${labelFn(i)}</div>
-          <div class="route-step-name">${loc.address || `Điểm ${i+1}`}</div>
-          ${i < locations.length - 1 ? '<span class="route-step-arrow">▼</span>' : ''}`;
-        seqEl.appendChild(arrow);
+          <div class="route-step-name">${loc.address || `Điểm ${i+1}`}</div>`;
+        seqEl.appendChild(step);
       });
     }
 
-    const seqB    = document.getElementById('route-sequence-b');
-    const seqC    = document.getElementById('route-sequence-c');
-    const lblB    = document.getElementById('phase-b-label');
-    const lblC    = document.getElementById('phase-c-label');
+    const seqB = document.getElementById('route-sequence-b');
+    const seqC = document.getElementById('route-sequence-c');
+    const lblB = document.getElementById('phase-b-label');
+    const lblC = document.getElementById('phase-c-label');
 
-    // B phase
+    // ── Pha B: đón khách — bắt đầu từ A ──
     if (orderedB.length > 0) {
       lblB.hidden = false;
-      buildSeq(seqB, orderedB, i => `B${i+1}`, '');
-    } else { lblB.hidden = true; seqB.innerHTML = ''; }
+      buildSeq(
+        seqB,
+        origin,                                          // start = A
+        'A',
+        'background:linear-gradient(135deg,#00d4ff,#0099cc)',
+        orderedB,
+        i => `B${i+1}`,
+        ''
+      );
+    } else {
+      lblB.hidden = true;
+      seqB.innerHTML = '';
+    }
 
-    // C phase
+    // ── Pha C: trả khách — bắt đầu từ B cuối (hoặc A nếu không có B) ──
     if (orderedC.length > 0) {
       lblC.hidden = false;
-      buildSeq(seqC, orderedC, i => `C${i+1}`, 'dropoff-num');
-    } else { lblC.hidden = true; seqC.innerHTML = ''; }
+      // Điểm bắt đầu pha C = B cuối cùng (nếu có), ngược lại là A
+      const cStart    = orderedB.length > 0 ? orderedB[orderedB.length - 1] : origin;
+      const cLabel    = orderedB.length > 0 ? `B${orderedB.length}` : 'A';
+      const cStyle    = orderedB.length > 0
+        ? 'background:linear-gradient(135deg,#a78bfa,#7c3aed)'   // tím — màu B
+        : 'background:linear-gradient(135deg,#00d4ff,#0099cc)';  // xanh — màu A
+      buildSeq(
+        seqC,
+        cStart,   // start = B cuối hoặc A
+        cLabel,
+        cStyle,
+        orderedC,
+        i => `C${i+1}`,
+        'dropoff-num'
+      );
+    } else {
+      lblC.hidden = true;
+      seqC.innerHTML = '';
+    }
   }
   function hideResults() { document.getElementById('results-panel').hidden = true; }
 

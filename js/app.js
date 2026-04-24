@@ -13,24 +13,25 @@ const App = (() => {
 
   // ── State ──
   const state = {
-    origin:    null,   // { lat, lng, address, role:'origin' }
-    stops:     [],     // B stops: [{ id, lat, lng, address }, ...]
-    dropoffs:  [],     // C stops: [{ id, lat, lng, address }, ...]
-    vehicle:   'car',
+    origin:    null,
+    stops:     [],
+    dropoffs:  [],
+    vehicle:   'car',   // cố định ô tô, không thay đổi
     gaParams:  { ...CONFIG.GA },
     running:   false,
-    clickMode: 'origin', // 'origin' | 'stop-{id}' | 'dropoff-{id}'
+    clickMode: 'origin',
     nextStopId: 0,
     nextDropoffId: 0
   };
   let debounceTimers = {};
+  // Dữ liệu lưu để bắt đầu dẫn đường
+  let _navData = null;  // { instructions, coords, totalDist, waypoints }
 
   // ── Init ──
   function init() {
     MapManager.init(CONFIG.API_KEY || '', onMapClick);
     // API key đã khóa cứng trong js/secrets.js — không cần modal nhập key
-    UI.initCollapsible();
-    UI.initVehicleSelector(v => { state.vehicle = v; });
+    // Phương tiện cố định: ô tô ('car')
 
     document.getElementById('btn-add-stop').addEventListener('click', () => addStopRow());
     document.getElementById('btn-add-dropoff').addEventListener('click', () => addDropoffRow());
@@ -69,9 +70,8 @@ const App = (() => {
     }
   }
 
-  // ── Auto-compute GA params based on total number of stops ──
+  // ── Tự tính params (chỉ để set số thế hệ cho progress bar) ──
   function autoGAParams(n) {
-    // Tiered: more stops → larger population & more generations
     let pop, gen;
     if (n <= 3)       { pop =  60; gen = 120; }
     else if (n <= 6)  { pop = 100; gen = 200; }
@@ -79,13 +79,6 @@ const App = (() => {
     else if (n <= 15) { pop = 200; gen = 450; }
     else if (n <= 20) { pop = 250; gen = 550; }
     else              { pop = 300; gen = 700; }
-
-    // Update display labels
-    const genEl = document.getElementById('ga-gen-display');
-    const popEl = document.getElementById('ga-pop-display');
-    if (genEl) genEl.textContent = gen;
-    if (popEl) popEl.textContent = pop;
-
     return { MAX_GENERATIONS: gen, POPULATION_SIZE: pop };
   }
 
@@ -417,12 +410,16 @@ const App = (() => {
       // Build full matrix: [A, B1..Bn, C1..Cm]
       const allLocs = [state.origin, ...validB, ...validC];
       UI.toast('Đang lấy ma trận khoảng cách...','info',2000);
-      const { matrix, source } = await MatrixManager.fetchMatrix(allLocs, state.vehicle);
+      // Luôn dùng 'car' cho matrix và route
+      const { matrix, source } = await MatrixManager.fetchMatrix(allLocs, 'car');
       if (source === 'haversine') UI.toast('Dùng khoảng cách đường thẳng (Matrix API không khả dụng)','warn');
 
-      // Run two-phase GA
+      // Run two-phase optimizer (brute-force nếu nhỏ, GA nếu lớn)
       UI.showProgress(totalGen);
-      UI.toast('🧬 Đang chạy Genetic Algorithm (2 pha)...','info',1500);
+      const useBrute = nb <= 10 && nc <= 10;
+      UI.toast(useBrute
+        ? '🔍 Tìm đường tối ưu tuyệt đối (brute-force)...'
+        : '🧬 Đang chạy Genetic Algorithm (2 pha)...', 'info', 1500);
       const gaParams = { ...state.gaParams, ...autoParams };
 
       const { bestRoute } = await GeneticAlgorithm.optimize(
@@ -440,9 +437,19 @@ const App = (() => {
       const orderedC = bestRoute.slice(nb).map(j => validC[j]);
       const fullRoute = [state.origin, ...orderedB, ...orderedC];
 
-      // Fetch real route
+      // Fetch real route (luôn dùng 'car')
       UI.toast('Đang tính toán đường đi...','info',2000);
-      const { distance, time, coords } = await RouteManager.fetchRoute(fullRoute, state.vehicle);
+      const { distance, time, coords, instructions } = await RouteManager.fetchRoute(fullRoute, 'car');
+
+      // Lưu dữ liệu cho navigation mode
+      _navData = {
+        instructions,
+        coords,
+        totalDist: distance,
+        // waypoints = tất cả điểm đích trừ origin (for reroute)
+        waypoints: [...orderedB, ...orderedC].map(p => ({ lat: p.lat, lng: p.lng }))
+      };
+      window._navData = _navData; // expose cho event listener bên ngoài
 
       // Draw map
       MapManager.clearRoute();
@@ -453,7 +460,12 @@ const App = (() => {
 
       // Show results (two-phase)
       UI.showResults(distance, time, state.origin, orderedB, orderedC);
-      UI.toast('✅ Tối ưu xong!','success',4000);
+
+      // Hiện nút bắt đầu di chuyển
+      const btnNav = document.getElementById('btn-start-nav');
+      if (btnNav) btnNav.hidden = false;
+
+      UI.toast('✅ Tối ưu xong! Nhấn "Bắt đầu di chuyển" để dẫn đường.','success',5000);
 
     } catch (err) {
       UI.hideProgress();
@@ -489,7 +501,50 @@ const App = (() => {
     UI.toast('Đã làm mới ứng dụng','info');
   }
 
+  // Kết nối nút navigation (sau khi DOM ready)
+  function initNavButton() {
+    const btnStart = document.getElementById('btn-start-nav');
+    const btnExit  = document.getElementById('btn-nav-exit');
+
+    if (btnStart) {
+      btnStart.addEventListener('click', () => {
+        if (!_navData) { UI.toast('Chưa có lộ trình để dẫn đường','warn'); return; }
+        NavigationManager.start(
+          _navData.instructions,
+          _navData.coords,
+          _navData.totalDist,
+          _navData.waypoints,
+          () => { /* on exit: không cần reset gì thêm */ }
+        );
+      });
+    }
+
+    if (btnExit) {
+      btnExit.addEventListener('click', () => {
+        NavigationManager.stop();
+      });
+    }
+  }
+
   return { init };
 })();
 
-document.addEventListener('DOMContentLoaded', () => App.init());
+document.addEventListener('DOMContentLoaded', () => {
+  App.init();
+  // Init nav button sau khi DOM ready
+  setTimeout(() => {
+    const btnStart = document.getElementById('btn-start-nav');
+    const btnExit  = document.getElementById('btn-nav-exit');
+    if (btnStart) btnStart.addEventListener('click', () => {
+      if (!window._navData) { UI.toast('Chưa có lộ trình để dẫn đường','warn'); return; }
+      NavigationManager.start(
+        window._navData.instructions,
+        window._navData.coords,
+        window._navData.totalDist,
+        window._navData.waypoints,
+        () => {}
+      );
+    });
+    if (btnExit) btnExit.addEventListener('click', () => NavigationManager.stop());
+  }, 0);
+});

@@ -152,10 +152,89 @@ const MapManager = (() => {
     markers = {};
   }
 
+  /* ── User position marker (navigation mode) ── */
+  let userMarker = null;
+  function setUserMarker(lat, lng, heading) {
+    const deg = heading || 0;
+    const html = `<div style="
+      position:relative;width:40px;height:40px;
+    ">
+      <div style="
+        position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+        width:20px;height:20px;border-radius:50%;
+        background:linear-gradient(135deg,#00e676,#00b050);
+        border:3px solid #fff;
+        box-shadow:0 0 0 6px rgba(0,230,118,.25),0 4px 16px rgba(0,0,0,.5);
+        animation:navPulse 1.5s ease-in-out infinite;
+        z-index:2;
+      "></div>
+      <div style="
+        position:absolute;top:50%;left:50%;
+        transform:translate(-50%,-50%) rotate(${deg}deg) translateY(-14px);
+        width:0;height:0;
+        border-left:5px solid transparent;
+        border-right:5px solid transparent;
+        border-bottom:10px solid #00e676;
+        z-index:3;
+      "></div>
+    </div>`;
+    const icon = L.divIcon({ className: '', html, iconSize: [40, 40], iconAnchor: [20, 20] });
+    if (userMarker) {
+      userMarker.setLatLng([lat, lng]).setIcon(icon);
+    } else {
+      userMarker = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map);
+    }
+  }
+
+  function removeUserMarker() {
+    if (userMarker) { userMarker.remove(); userMarker = null; }
+  }
+
+  /* ── Follow user in navigation mode ── */
+  let _following = false;
+  let _navZoom = 17;
+
+  function startFollowing(zoom) {
+    _following = true;
+    if (zoom) _navZoom = zoom;
+    // Khóa drag/scroll để bản đồ luôn theo xe
+    map.dragging.disable();
+    map.scrollWheelZoom.disable();
+    map.doubleClickZoom.disable();
+    map.touchZoom.disable();
+  }
+
+  function stopFollowing() {
+    _following = false;
+    // Mở lại tương tác bản đồ
+    map.dragging.enable();
+    map.scrollWheelZoom.enable();
+    map.doubleClickZoom.enable();
+    map.touchZoom.enable();
+  }
+
+  function followUser(lat, lng) {
+    if (!_following) return;
+    // setView không animation để luôn cập nhật ngay lập tức
+    map.setView([lat, lng], _navZoom, {
+      animate: true,
+      pan: { animate: true, duration: 0.25, easeLinearity: 0.5 },
+      zoom: { animate: false }
+    });
+  }
+
+  /* Chỉnh zoom khi đang navigate */
+  function setNavZoom(z) {
+    _navZoom = z;
+    if (_following && map) map.setZoom(z, { animate: false });
+  }
+
   /* ── Reset ── */
   function reset() {
     clearAllMarkers();
     clearRoute();
+    removeUserMarker();
+    stopFollowing();
   }
 
   return {
@@ -163,7 +242,9 @@ const MapManager = (() => {
     setOriginMarker, setStopMarker, setDropoffMarker,
     removeStopMarker, setOptimizedMarkers,
     drawRoute, animateRoute, clearRoute,
-
-    fitToBounds, flyTo, clearAllMarkers, reset
+    fitToBounds, flyTo, clearAllMarkers,
+    setUserMarker, removeUserMarker, startFollowing, stopFollowing, followUser, setNavZoom,
+    get _navZoom() { return _navZoom; },
+    reset
   };
 })();

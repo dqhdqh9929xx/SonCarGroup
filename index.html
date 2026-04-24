@@ -96,36 +96,9 @@
         </div>
       </div>
 
-      <!-- Settings (collapsible) -->
-      <div class="panel panel-collapsible">
-        <div class="panel-header collapsible-trigger" id="settings-trigger">
-          <span class="panel-title">⚙️ Cài đặt</span>
-          <span class="chevron" id="settings-chevron">▾</span>
-        </div>
-        <div class="collapsible-body" id="settings-body">
-          <div class="setting-row">
-            <label class="setting-label">Phương tiện</label>
-            <div class="vehicle-selector" id="vehicle-selector">
-              <button class="veh-btn active" data-vehicle="car">🚗 Ô tô</button>
-              <button class="veh-btn" data-vehicle="bike">🏉️ Xe máy</button>
-              <button class="veh-btn" data-vehicle="foot">🚶 Đi bộ</button>
-            </div>
-          </div>
-          <!-- Auto GA params info -->
-          <div class="setting-row ga-auto-info" id="ga-auto-info">
-            <label class="setting-label">Thông số GA (tự động)</label>
-            <div class="ga-info-box">
-              <span>🦸 Thế hệ: <strong id="ga-gen-display">—</strong></span>
-              <span>👥 Quần thể: <strong id="ga-pop-display">—</strong></span>
-            </div>
-            <div class="ga-info-note">Tự điều chỉnh theo số điểm</div>
-          </div>
-        </div>
-      </div>
-
       <!-- Optimize Button -->
       <button class="btn-optimize" id="btn-optimize" disabled>
-        <span>🧬 Tối ưu hóa lộ trình</span>
+        <span>🚗 Tối ưu hóa lộ trình</span>
       </button>
       <button class="btn-reset" id="btn-reset">🔄 Làm mới</button>
 
@@ -163,6 +136,11 @@
         <!-- Phase C -->
         <div class="phase-label phase-c" id="phase-c-label" hidden>🏁 Trả khách (C)</div>
         <div class="route-sequence" id="route-sequence-c"></div>
+
+        <!-- Start Navigation -->
+        <button class="btn-start-nav" id="btn-start-nav" hidden>
+          🚗 Bắt đầu di chuyển
+        </button>
       </div>
 
     </div><!-- /sidebar-scroll -->
@@ -182,18 +160,64 @@
 
 </div><!-- /app-layout -->
 
+<!-- Navigation HUD (full-screen overlay, hidden by default) -->
+<div id="nav-hud" class="nav-hud hidden">
+
+  <!-- Top instruction bar -->
+  <div class="nav-instruction-bar">
+    <div class="nav-turn-icon" id="nav-turn-icon">↑</div>
+    <div class="nav-instruction-text">
+      <div class="nav-dist" id="nav-dist">—</div>
+      <div class="nav-street" id="nav-street">Chuẩn bị xuất phát...</div>
+    </div>
+    <button class="nav-exit-btn" id="btn-nav-exit" title="Thoát dẫn đường">✕</button>
+  </div>
+
+  <!-- Bottom info bar -->
+  <div class="nav-bottom-bar">
+    <div class="nav-stat">
+      <div class="nav-stat-value" id="nav-remain-dist">—</div>
+      <div class="nav-stat-label">Còn lại</div>
+    </div>
+    <div class="nav-stat-divider"></div>
+    <div class="nav-stat">
+      <div class="nav-stat-value" id="nav-eta">—</div>
+      <div class="nav-stat-label">Dự kiến đến</div>
+    </div>
+    <div class="nav-stat-divider"></div>
+    <div class="nav-stat">
+      <div class="nav-stat-value" id="nav-speed">—</div>
+      <div class="nav-stat-label">km/h</div>
+    </div>
+  </div>
+
+  <!-- Rerouting pill -->
+  <div class="nav-rerouting" id="nav-rerouting" hidden>
+    🔄 Đang tính lại đường...
+  </div>
+
+  <!-- Zoom + Re-center controls (right side) -->
+  <div class="nav-zoom-controls">
+    <button class="nav-zoom-btn" id="nav-zoom-in"  title="Phóng to">＋</button>
+    <button class="nav-zoom-btn" id="nav-zoom-out" title="Thu nhỏ">－</button>
+    <button class="nav-recenter-btn" id="nav-recenter" title="Về vị trí xe">📍</button>
+  </div>
+
+</div>
+
 <!-- Toast container -->
 <div id="toast-container"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/secrets.js"></script>
-<script src="js/config.js"></script>
-<script src="js/uiManager.js"></script>
-<script src="js/mapManager.js"></script>
-<script src="js/matrixManager.js"></script>
-<script src="js/routeManager.js"></script>
-<script src="js/nearbyManager.js"></script>
-<script src="js/geneticAlgorithm.js"></script>
-<script src="js/app.js"></script>
+<script src="js/secrets.js?v=20260424d"></script>
+<script src="js/config.js?v=20260424d"></script>
+<script src="js/uiManager.js?v=20260424d"></script>
+<script src="js/mapManager.js?v=20260424f"></script>
+<script src="js/matrixManager.js?v=20260424d"></script>
+<script src="js/routeManager.js?v=20260424e"></script>
+<script src="js/nearbyManager.js?v=20260424d"></script>
+<script src="js/geneticAlgorithm.js?v=20260424d"></script>
+<script src="js/navigationManager.js?v=20260424f"></script>
+<script src="js/app.js?v=20260424f"></script>
 </body>
 </html>

@@ -73,19 +73,40 @@ const RouteManager = (() => {
     if (!data.paths || data.paths.length === 0) throw new Error('Không tìm được đường đi');
     const path = data.paths[0];
 
-    // Extract GeoJSON coords
+    // Extract GeoJSON coords [[lng,lat],...]
     let coords = [];
     const pts = path.points;
     if (pts && pts.coordinates) {
-      coords = pts.coordinates; // Already GeoJSON [[lng,lat],...]
+      coords = pts.coordinates;
     } else if (pts && pts.type === 'LineString') {
       coords = pts.coordinates;
     }
 
+    // Extract turn-by-turn instructions
+    const instructions = [];
+    if (Array.isArray(path.instructions)) {
+      for (const inst of path.instructions) {
+        // interval[0] = index vào coords array của điểm maneuver
+        const ptIdx = Array.isArray(inst.interval) ? inst.interval[0] : 0;
+        const coord = coords[ptIdx] || coords[0]; // [lng, lat]
+        instructions.push({
+          sign:       inst.sign ?? 0,
+          text:       inst.text || '',
+          streetName: inst.street_name || '',
+          distance:   inst.distance || 0,   // meters to NEXT maneuver
+          time:       inst.time || 0,       // ms
+          lng:        coord ? coord[0] : 0,
+          lat:        coord ? coord[1] : 0,
+          ptIdx
+        });
+      }
+    }
+
     return {
-      distance: path.distance || 0, // meters
-      time:     path.time     || 0, // milliseconds
-      coords                        // [[lng,lat], ...]
+      distance:     path.distance || 0,  // meters
+      time:         path.time     || 0,  // milliseconds
+      coords,                            // [[lng,lat], ...]
+      instructions                       // [{sign,text,streetName,distance,lat,lng}, ...]
     };
   }
 
