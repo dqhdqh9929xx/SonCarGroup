@@ -203,6 +203,36 @@
     <button class="nav-recenter-btn" id="nav-recenter" title="Về vị trí xe">📍</button>
   </div>
 
+  <!-- Quick Add Passenger button (left side, above bottom-bar) -->
+  <button class="nav-quick-add-btn" id="nav-quick-add-btn" title="Thêm hành khách nhanh">
+    👤
+    <span class="qab-badge" id="qab-badge">5</span>
+  </button>
+
+</div>
+
+<!-- Quick Add Passenger Panel -->
+<div class="qap-backdrop hidden" id="qap-backdrop">
+  <div class="qap-panel" id="qap-panel">
+    <div class="qap-handle"></div>
+    <div class="qap-header">
+      <div>
+        <div class="qap-title">
+          <div class="qap-title-icon">👤</div>
+          Thêm hành khách nhanh
+        </div>
+        <div class="qap-subtitle">Chọn khách để thêm vào lộ trình hiện tại</div>
+      </div>
+      <button class="qap-close-btn" id="qap-close-btn" title="Đóng">✕</button>
+    </div>
+    <div class="qap-list" id="qap-list">
+      <!-- Passenger cards rendered by JS -->
+      <div class="qap-loading" id="qap-loading">
+        <div class="qap-spinner"></div>
+        Đang tải danh sách...
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Toast container -->
@@ -217,7 +247,7 @@
 <script src="js/routeManager.js?v=20260424e"></script>
 <script src="js/nearbyManager.js?v=20260424d"></script>
 <script src="js/geneticAlgorithm.js?v=20260424d"></script>
-<script src="js/navigationManager.js?v=20260424f"></script>
-<script src="js/app.js?v=20260424f"></script>
+<script src="js/navigationManager.js?v=20260424j"></script>
+<script src="js/app.js?v=20260424h"></script>
 </body>
 </html>

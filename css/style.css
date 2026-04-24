@@ -851,3 +851,214 @@ html, body {
   margin-top: 4px;
 }
 .nav-recenter-btn:hover { background: rgba(0,230,118,.3); }
+
+/* ════════════════════════════════════════════
+   QUICK ADD PASSENGER (nav mode)
+════════════════════════════════════════════ */
+
+/* Nút mở panel — nằm bên trái, cạnh nav controls */
+.nav-quick-add-btn {
+  pointer-events: all;
+  position: absolute;
+  left: 14px;
+  bottom: 80px;          /* bên trên bottom-bar */
+  width: 52px; height: 52px;
+  background: linear-gradient(135deg, #ff9f43, #ee5a24);
+  border: none; border-radius: 14px;
+  color: #fff; font-size: 1.4rem;
+  cursor: pointer; transition: var(--trans);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(238,90,36,.45);
+  z-index: 510;
+  animation: navSlideDown .4s cubic-bezier(.34,1.56,.64,1);
+}
+.nav-quick-add-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 28px rgba(238,90,36,.6);
+}
+.nav-quick-add-btn:active { transform: scale(.95); }
+.nav-quick-add-btn .qab-badge {
+  position: absolute; top: -5px; right: -5px;
+  background: #ff5252; color: #fff;
+  border-radius: 50%; width: 18px; height: 18px;
+  font-size: .62rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid #0a0e1a;
+}
+
+/* Backdrop */
+.qap-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+  z-index: 600;
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: qapFadeIn .25s ease;
+}
+.qap-backdrop.hidden { display: none; }
+@keyframes qapFadeIn { from { opacity:0; } to { opacity:1; } }
+
+/* Panel chính */
+.qap-panel {
+  width: 100%; max-width: 480px;
+  background: #111827;
+  border: 1px solid rgba(255,159,67,.35);
+  border-radius: 24px 24px 0 0;
+  padding: 0 0 24px;
+  box-shadow: 0 -16px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(255,159,67,.1);
+  animation: qapSlideUp .35s cubic-bezier(.34,1.56,.64,1);
+  max-height: 82vh;
+  display: flex; flex-direction: column;
+}
+@keyframes qapSlideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+/* Drag handle */
+.qap-handle {
+  width: 40px; height: 4px;
+  background: rgba(255,255,255,.15);
+  border-radius: 4px;
+  margin: 12px auto 0;
+  flex-shrink: 0;
+}
+
+/* Header */
+.qap-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  flex-shrink: 0;
+}
+.qap-title {
+  font-size: 1rem; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+.qap-title-icon {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: linear-gradient(135deg,#ff9f43,#ee5a24);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem;
+}
+.qap-subtitle {
+  font-size: .72rem; color: var(--text-muted); font-weight: 400; margin-top: 2px;
+}
+.qap-close-btn {
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+  border-radius: 50%; width: 32px; height: 32px;
+  color: var(--text-muted); font-size: .9rem;
+  cursor: pointer; transition: var(--trans);
+  display: flex; align-items: center; justify-content: center;
+}
+.qap-close-btn:hover { background: rgba(255,82,82,.15); color: var(--error); border-color: rgba(255,82,82,.3); }
+
+/* Scrollable list */
+.qap-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 10px 14px 4px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.qap-list::-webkit-scrollbar { width: 4px; }
+.qap-list::-webkit-scrollbar-track { background: transparent; }
+.qap-list::-webkit-scrollbar-thumb { background: rgba(255,159,67,.3); border-radius: 4px; }
+
+/* Passenger card */
+.qap-card {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255,159,67,.04);
+  border: 1px solid rgba(255,159,67,.14);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  transition: border-color .2s, background .2s;
+  animation: slideIn .25s ease;
+  cursor: default;
+}
+.qap-card:hover { border-color: rgba(255,159,67,.35); background: rgba(255,159,67,.08); }
+.qap-card.added {
+  border-color: rgba(0,230,118,.35);
+  background: rgba(0,230,118,.05);
+  opacity: .75;
+}
+
+.qap-avatar {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, #ff9f43, #ee5a24);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; font-weight: 800; color: #fff;
+  box-shadow: 0 2px 10px rgba(238,90,36,.3);
+}
+
+.qap-info { flex: 1; min-width: 0; }
+.qap-name {
+  font-size: .88rem; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.qap-phone {
+  font-size: .73rem; color: var(--text-muted); margin-top: 1px;
+}
+.qap-addr {
+  font-size: .72rem; color: var(--text-muted); margin-top: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.qap-addr-icon { color: #ff9f43; margin-right: 3px; }
+
+.qap-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.qap-delta {
+  font-size: .72rem; font-weight: 700;
+  padding: 3px 7px; border-radius: 20px;
+  background: rgba(255,159,67,.15);
+  color: #ff9f43;
+  border: 1px solid rgba(255,159,67,.25);
+  white-space: nowrap;
+}
+.qap-delta.negative { background: rgba(0,230,118,.12); color: #00e676; border-color: rgba(0,230,118,.25); }
+
+.qap-add-btn {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg,#ff9f43,#ee5a24);
+  border: none; border-radius: 50%;
+  color: #fff; font-size: 1.2rem; font-weight: 700;
+  cursor: pointer; transition: var(--trans);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 10px rgba(238,90,36,.4);
+  flex-shrink: 0;
+}
+.qap-add-btn:hover:not(:disabled) { transform: scale(1.18); box-shadow: 0 4px 18px rgba(238,90,36,.6); }
+.qap-add-btn:disabled {
+  background: rgba(0,230,118,.2);
+  box-shadow: none;
+  cursor: default;
+  font-size: .8rem;
+}
+
+/* Loading state */
+.qap-loading {
+  text-align: center; padding: 30px 0;
+  color: var(--text-muted); font-size: .85rem;
+}
+.qap-spinner {
+  width: 30px; height: 30px; margin: 0 auto 10px;
+  border: 3px solid rgba(255,159,67,.15);
+  border-top-color: #ff9f43;
+  border-radius: 50%;
+  animation: qapSpin .7s linear infinite;
+}
+@keyframes qapSpin { to { transform: rotate(360deg); } }
+
+/* Dropoff address row in QAP card */
+.qap-addr-dropoff { margin-top: 2px; }
+.qap-addr-dropoff .qap-addr-icon { color: #00d4ff; }
+
+/* Delta loading state (per-card spinner) */
+.qap-delta-loading {
+  display: inline-block;
+  animation: deltaPulse .9s ease-in-out infinite;
+  font-size: .85rem;
+}
+@keyframes deltaPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .35; }
+}
+

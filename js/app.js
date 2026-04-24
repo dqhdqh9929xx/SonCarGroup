@@ -526,7 +526,34 @@ const App = (() => {
     }
   }
 
-  return { init };
+  /* ── Thêm khách hàng vào sidebar B/C (dùng trong QuickAddPassenger) ── */
+  function addPassengerToRoute(passenger) {
+    // Thêm điểm đón (B)
+    addStopRow(passenger.pickupAddress);
+    const stopId = String(state.nextStopId - 1);
+    const stopIdx = state.stops.findIndex(s => s.id === stopId);
+    if (stopIdx !== -1) {
+      state.stops[stopIdx] = { ...state.stops[stopIdx], lat: passenger.pickupLat, lng: passenger.pickupLng, address: passenger.pickupAddress };
+      const inp = document.getElementById(`stop-input-${stopId}`);
+      if (inp) inp.value = passenger.pickupAddress;
+      updateDisplay(`stop-item-${stopId}`, `stop-input-${stopId}`, passenger.pickupAddress);
+      MapManager.setStopMarker(`stop-${stopId}`, passenger.pickupLng, passenger.pickupLat, String(stopIdx + 1));
+    }
+    // Thêm điểm trả (C)
+    addDropoffRow(passenger.dropoffAddress);
+    const dropoffId = String(state.nextDropoffId - 1);
+    const dropoffIdx = state.dropoffs.findIndex(d => d.id === dropoffId);
+    if (dropoffIdx !== -1) {
+      state.dropoffs[dropoffIdx] = { ...state.dropoffs[dropoffIdx], lat: passenger.dropoffLat, lng: passenger.dropoffLng, address: passenger.dropoffAddress };
+      const inp2 = document.getElementById(`dropoff-input-${dropoffId}`);
+      if (inp2) inp2.value = passenger.dropoffAddress;
+      updateDisplay(`dropoff-item-${dropoffId}`, `dropoff-input-${dropoffId}`, passenger.dropoffAddress);
+      MapManager.setDropoffMarker(`dropoff-${dropoffId}`, passenger.dropoffLng, passenger.dropoffLat, `C${dropoffIdx + 1}`);
+    }
+    checkOptimizeReady();
+  }
+
+  return { init, addPassengerToRoute };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
