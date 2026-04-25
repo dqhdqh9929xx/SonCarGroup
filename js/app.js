@@ -53,6 +53,11 @@ const App = (() => {
     });
 
     UI.setMapHint('💡 Click bản đồ để đặt điểm xuất phát');
+
+    // Init Telegram Bot listener
+    TelegramBot.init((passenger) => {
+      addPassengerToRoute(passenger);
+    });
   }
 
   // ── Map click ──
@@ -533,27 +538,41 @@ const App = (() => {
     const stopId = String(state.nextStopId - 1);
     const stopIdx = state.stops.findIndex(s => s.id === stopId);
     if (stopIdx !== -1) {
-      state.stops[stopIdx] = { ...state.stops[stopIdx], lat: passenger.pickupLat, lng: passenger.pickupLng, address: passenger.pickupAddress };
       const inp = document.getElementById(`stop-input-${stopId}`);
       if (inp) inp.value = passenger.pickupAddress;
-      updateDisplay(`stop-item-${stopId}`, `stop-input-${stopId}`, passenger.pickupAddress);
-      MapManager.setStopMarker(`stop-${stopId}`, passenger.pickupLng, passenger.pickupLat, String(stopIdx + 1));
+      if (passenger.pickupLat != null && passenger.pickupLng != null) {
+        state.stops[stopIdx] = { ...state.stops[stopIdx], lat: passenger.pickupLat, lng: passenger.pickupLng, address: passenger.pickupAddress };
+        updateDisplay(`stop-item-${stopId}`, `stop-input-${stopId}`, passenger.pickupAddress);
+        MapManager.setStopMarker(`stop-${stopId}`, passenger.pickupLng, passenger.pickupLat, String(stopIdx + 1));
+      }
+      // Nếu tọa độ null → chỉ điền text, user dùng autocomplete trên web để chọn lại
     }
     // Thêm điểm trả (C)
     addDropoffRow(passenger.dropoffAddress);
     const dropoffId = String(state.nextDropoffId - 1);
     const dropoffIdx = state.dropoffs.findIndex(d => d.id === dropoffId);
     if (dropoffIdx !== -1) {
-      state.dropoffs[dropoffIdx] = { ...state.dropoffs[dropoffIdx], lat: passenger.dropoffLat, lng: passenger.dropoffLng, address: passenger.dropoffAddress };
       const inp2 = document.getElementById(`dropoff-input-${dropoffId}`);
       if (inp2) inp2.value = passenger.dropoffAddress;
-      updateDisplay(`dropoff-item-${dropoffId}`, `dropoff-input-${dropoffId}`, passenger.dropoffAddress);
-      MapManager.setDropoffMarker(`dropoff-${dropoffId}`, passenger.dropoffLng, passenger.dropoffLat, `C${dropoffIdx + 1}`);
+      if (passenger.dropoffLat != null && passenger.dropoffLng != null) {
+        state.dropoffs[dropoffIdx] = { ...state.dropoffs[dropoffIdx], lat: passenger.dropoffLat, lng: passenger.dropoffLng, address: passenger.dropoffAddress };
+        updateDisplay(`dropoff-item-${dropoffId}`, `dropoff-input-${dropoffId}`, passenger.dropoffAddress);
+        MapManager.setDropoffMarker(`dropoff-${dropoffId}`, passenger.dropoffLng, passenger.dropoffLat, `C${dropoffIdx + 1}`);
+      }
     }
     checkOptimizeReady();
   }
 
-  return { init, addPassengerToRoute };
+  /* Expose route state for delta calculations */
+  function getRouteState() {
+    const pts = [];
+    if (state.origin && state.origin.lat != null) pts.push(state.origin);
+    state.stops.forEach(s => { if (s.lat != null) pts.push(s); });
+    state.dropoffs.forEach(d => { if (d.lat != null) pts.push(d); });
+    return pts;
+  }
+
+  return { init, addPassengerToRoute, runOptimize, getRouteState };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {

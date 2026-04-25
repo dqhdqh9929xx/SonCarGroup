@@ -61,16 +61,24 @@ const RouteManager = (() => {
   /* ── Route API: get route for ordered list of locations ── */
   async function fetchRoute(orderedLocations, vehicle = 'car') {
     const apiKey = CONFIG.API_KEY;
-    if (orderedLocations.length < 2) throw new Error('Cần ít nhất 2 điểm');
+    // Lọc bỏ điểm có tọa độ null/NaN
+    const validLocs = orderedLocations.filter(l =>
+      l.lat != null && l.lng != null && !isNaN(l.lat) && !isNaN(l.lng)
+    );
+    console.log('[Route] Valid points:', validLocs.map(l => `${l.lat},${l.lng}`));
+    if (validLocs.length < 2) throw new Error('Cần ít nhất 2 điểm có tọa độ hợp lệ');
 
-    const pointsParam = orderedLocations.map(l => `point=${l.lat},${l.lng}`).join('&');
+    const pointsParam = validLocs.map(l => `point=${l.lat},${l.lng}`).join('&');
     const url = `${CONFIG.ROUTE_API}?${pointsParam}&vehicle=${vehicle}&points_encoded=false&apikey=${apiKey}`;
 
     const res  = await fetch(url);
     if (!res.ok) throw new Error(`Route API HTTP ${res.status}`);
     const data = await res.json();
 
-    if (!data.paths || data.paths.length === 0) throw new Error('Không tìm được đường đi');
+    if (!data.paths || data.paths.length === 0) {
+      console.error('[Route] No paths returned. Points:', validLocs.map(l => `${l.lat},${l.lng}`));
+      throw new Error('Không tìm được đường đi — kiểm tra lại tọa độ các điểm');
+    }
     const path = data.paths[0];
 
     // Extract GeoJSON coords [[lng,lat],...]

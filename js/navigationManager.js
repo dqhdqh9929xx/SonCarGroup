@@ -284,56 +284,16 @@ const NavigationManager = (() => {
 
 /* ══════════════════════════════════════════════════════════
    QuickAddPassenger – Thêm hành khách nhanh trong nav mode
-   Dữ liệu mock: 5 hành khách (đón Bắc Ninh / trả Hà Nội)
+   Lấy danh sách khách từ TelegramBot
 ══════════════════════════════════════════════════════════ */
 const QuickAddPassenger = (() => {
   'use strict';
 
-  /* ── Mock passenger data ── */
-  const MOCK_PASSENGERS = [
-    {
-      id: 'p1', name: 'Nguyễn Văn An', phone: '0912 345 678',
-      pickupAddress:  '12 Đường Lý Thái Tổ, P. Bắc Giang, Bắc Ninh',
-      pickupLat:  21.1881, pickupLng:  106.0748,
-      dropoffAddress: '45 Phố Huế, Q. Hai Bà Trưng, Hà Nội',
-      dropoffLat: 21.0094, dropoffLng: 105.8527,
-    },
-    {
-      id: 'p2', name: 'Trần Thị Bình', phone: '0987 654 321',
-      pickupAddress:  '45 Ngõ 7 Trần Phú, P. Bắc Giang, Bắc Ninh',
-      pickupLat:  21.1905, pickupLng:  106.0762,
-      dropoffAddress: '18 Trần Duy Hưng, Q. Cầu Giấy, Hà Nội',
-      dropoffLat: 21.0108, dropoffLng: 105.7976,
-    },
-    {
-      id: 'p3', name: 'Lê Minh Cường', phone: '0978 111 222',
-      pickupAddress:  '8 Phố Bắc Giang, P. Bắc Giang, Bắc Ninh',
-      pickupLat:  21.1869, pickupLng:  106.0735,
-      dropoffAddress: '22 Lý Thường Kiệt, Q. Hoàn Kiếm, Hà Nội',
-      dropoffLat: 21.0258, dropoffLng: 105.8486,
-    },
-    {
-      id: 'p4', name: 'Phạm Thu Hương', phone: '0965 888 777',
-      pickupAddress:  '21 Đường Hoàng Quốc Việt, P. Bắc Giang, Bắc Ninh',
-      pickupLat:  21.1920, pickupLng:  106.0780,
-      dropoffAddress: '6 Nguyễn Thái Học, Q. Ba Đình, Hà Nội',
-      dropoffLat: 21.0334, dropoffLng: 105.8387,
-    },
-    {
-      id: 'p5', name: 'Đỗ Quang Khải', phone: '0933 456 789',
-      pickupAddress:  '3 Ngách 4/2 Lê Lợi, P. Bắc Giang, Bắc Ninh',
-      pickupLat:  21.1856, pickupLng:  106.0720,
-      dropoffAddress: '105 Chùa Bộc, Q. Đống Đa, Hà Nội',
-      dropoffLat: 21.0167, dropoffLng: 105.8380,
-    },
-  ];
-
-  /* ── State ── */
   let _addedIds          = new Set();
   let _currentRouteDistM = 0;
   let _currentWaypoints  = [];
 
-  /* ── Haversine (metres) – chỉ dùng nội bộ khi cần ── */
+  /* ── Haversine (metres) ── */
   function hav(lat1, lng1, lat2, lng2) {
     const R = 6371000;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -344,68 +304,75 @@ const QuickAddPassenger = (() => {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  /*
-   * Tính delta lộ trình THỰC TẾ (API route) khi thêm passenger.
-   * Gọi RouteManager.fetchRoute: tuyến hiện tại & tuyến sau khi thêm.
-   * Trả về delta metres (dương = thêm quãng đường).
-   */
-  async function estimateDeltaRoute(passenger, waypoints) {
-    const gps = NavigationManager._getLastPos ? NavigationManager._getLastPos() : null;
-    const seq = [];
-    if (gps && gps.lat != null) seq.push(gps);
-    seq.push(...waypoints);
-    if (seq.length < 1) return null;
-
-    const P = { lat: passenger.pickupLat,  lng: passenger.pickupLng  };
-    const D = { lat: passenger.dropoffLat, lng: passenger.dropoffLng };
-    const baseSeq = seq.length >= 2 ? seq : [seq[0], seq[0]];
-
-    try {
-      const oldRoute = await RouteManager.fetchRoute(baseSeq, 'car');
-      const oldDist  = oldRoute.distance;
-
-      let minNewDist = Infinity;
-      for (let i = 0; i <= seq.length - 1; i++) {
-        const newSeq = [...seq.slice(0, i + 1), P, D, ...seq.slice(i + 1)];
-        if (newSeq.length >= 2) {
-          try {
-            const r = await RouteManager.fetchRoute(newSeq, 'car');
-            if (r.distance < minNewDist) minNewDist = r.distance;
-          } catch (_) {}
-        }
-      }
-      if (!isFinite(minNewDist)) return null;
-      return minNewDist - oldDist;
-    } catch (err) {
-      console.warn('[QAP] estimateDeltaRoute failed:', err.message);
-      return null;
+  /* ── Tính tổng haversine cho chuỗi điểm ── */
+  function routeLen(pts) {
+    let total = 0;
+    for (let i = 1; i < pts.length; i++) {
+      total += hav(pts[i - 1].lat, pts[i - 1].lng, pts[i].lat, pts[i].lng);
     }
+    return total * 1.4; // hệ số đường thực tế
   }
 
-  /* Format delta */
+  /* ── Ước tính CHÊNH LỆCH quãng đường (lộ trình mới − cũ) ── */
+  function estimateDelta(passenger) {
+    if (!passenger.pickupLat || !passenger.dropoffLat) return null;
+
+    const P = { lat: passenger.pickupLat, lng: passenger.pickupLng };
+    const D = { lat: passenger.dropoffLat, lng: passenger.dropoffLng };
+
+    // Lấy lộ trình hiện tại từ App
+    const currentPts = (typeof App !== 'undefined' && App.getRouteState)
+      ? App.getRouteState() : [];
+
+    if (currentPts.length < 2) {
+      // Chưa có lộ trình → hiện khoảng cách đón-trả
+      return routeLen([P, D]);
+    }
+
+    // Tính khoảng cách lộ trình hiện tại
+    const oldDist = routeLen(currentPts);
+
+    // Thử chèn P và D vào mọi vị trí, tìm chênh lệch nhỏ nhất
+    let minNewDist = Infinity;
+    for (let i = 0; i <= currentPts.length; i++) {
+      for (let j = i; j <= currentPts.length; j++) {
+        const newPts = [
+          ...currentPts.slice(0, i),
+          P,
+          ...currentPts.slice(i, j),
+          D,
+          ...currentPts.slice(j)
+        ];
+        const d = routeLen(newPts);
+        if (d < minNewDist) minNewDist = d;
+      }
+    }
+    return minNewDist - oldDist;
+  }
+
   function fmtDelta(deltaM) {
-    if (deltaM == null) return '?';
+    if (deltaM == null) return '…';
     const km = deltaM / 1000;
-    const sign = km >= 0 ? '+' : '';
-    return `${sign}${km.toFixed(1)} km`;
+    return `+${km.toFixed(1)} km`;
   }
 
-  /* ── Render card ── */
-  function renderCard(passenger, deltaM, loading = false) {
+  function toPassenger(cust) {
+    return {
+      id: cust.id, name: cust.name, phone: cust.phone,
+      pickupAddress: cust.pickupAddr, pickupLat: cust.pickupLat, pickupLng: cust.pickupLng,
+      dropoffAddress: cust.dropoffAddr, dropoffLat: cust.dropoffLat, dropoffLng: cust.dropoffLng,
+      needsGeocode: cust.needsGeocode || false
+    };
+  }
+
+  function renderCard(passenger, deltaM) {
     const isAdded  = _addedIds.has(passenger.id);
-    const card     = document.createElement('div');
+    const card = document.createElement('div');
     card.className = 'qap-card' + (isAdded ? ' added' : '');
-    card.id        = `qap-card-${passenger.id}`;
-
+    card.id = `qap-card-${passenger.id}`;
     const initials = passenger.name.split(' ').map(w => w[0]).slice(-2).join('');
-    const isNeg    = deltaM != null && deltaM < 0;
-    const deltaStr = loading
-      ? '<span class="qap-delta-loading">⏳</span>'
-      : fmtDelta(deltaM);
-    const deltaTitle = loading
-      ? 'Đang tính lộ trình thực tế...'
-      : 'Chênh lệch quãng đường lộ trình thực tế khi thêm khách này';
-
+    const deltaStr = fmtDelta(deltaM);
+    const deltaTitle = deltaM != null ? 'Ước tính quãng đường đón-trả khách này' : 'Đang xác định tọa độ...';
     card.innerHTML = `
       <div class="qap-avatar">${initials}</div>
       <div class="qap-info">
@@ -415,15 +382,10 @@ const QuickAddPassenger = (() => {
         <div class="qap-addr qap-addr-dropoff"><span class="qap-addr-icon" style="color:#00d4ff">🔵</span>${passenger.dropoffAddress}</div>
       </div>
       <div class="qap-meta">
-        <div class="qap-delta${isNeg ? ' negative' : ''}" id="qap-delta-${passenger.id}" title="${deltaTitle}">
-          ${deltaStr}
-        </div>
+        <div class="qap-delta" id="qap-delta-${passenger.id}" title="${deltaTitle}">${deltaStr}</div>
         <button class="qap-add-btn" id="qap-add-${passenger.id}"
-          ${isAdded ? 'disabled title="Đã thêm vào B/C"' : 'title="Thêm địa chỉ vào mục B/C để chỉ đường"'}>
-          ${isAdded ? '✓' : '+'}
-        </button>
+          ${isAdded ? 'disabled title="Đã thêm"' : 'title="Thêm vào lộ trình"'}>${isAdded ? '✓' : '+'}</button>
       </div>`;
-
     if (!isAdded) {
       card.querySelector(`#qap-add-${passenger.id}`)
         .addEventListener('click', () => addPassenger(passenger));
@@ -431,104 +393,222 @@ const QuickAddPassenger = (() => {
     return card;
   }
 
-  /* ── Render danh sách + tính delta route thực tế tuần tự ── */
   function renderList(waypoints, currentDistM) {
     const listEl = document.getElementById('qap-list');
     const loadEl = document.getElementById('qap-loading');
     if (!listEl) return;
-
+    const tgCustomers = (typeof TelegramBot !== 'undefined' && TelegramBot.getCustomers)
+      ? TelegramBot.getCustomers() : [];
+    const passengers = tgCustomers
+      .filter(c => c.status === 'pending' || c.status === 'added')
+      .map(toPassenger);
     if (loadEl) loadEl.style.display = 'block';
 
-    setTimeout(() => {
-      if (loadEl) loadEl.style.display = 'none';
-      listEl.querySelectorAll('.qap-card').forEach(el => el.remove());
+    /* ── Smart geocode: thử nhiều cách, resolve ref_id nếu cần ── */
+    async function smartGeocode(address) {
+      const queries = [
+        address,
+        address.replace(/^\d+\s*/, ''),
+        address.replace(/[,]/g, ' ').replace(/\s+/g, ' ').trim(),
+      ];
+      const parts = address.replace(/[,]/g, ' ').split(/\s+/).filter(w => w.length > 1);
+      if (parts.length >= 2) {
+        queries.push(parts.slice(-2).join(' '));
+        queries.push(parts.slice(-3).join(' '));
+      }
+      if (parts.length >= 1) queries.push(parts[parts.length - 1]);
 
-      // Render tất cả cards ngay với delta đang loading
-      MOCK_PASSENGERS.forEach(p => {
-        const card = renderCard(p, null, !_addedIds.has(p.id));
-        listEl.appendChild(card);
+      for (const q of queries) {
+        if (!q || q.length < 2) continue;
+        try {
+          const results = await RouteManager.searchAddress(q);
+          if (!results || results.length === 0) continue;
+          const item = results[0];
+          let lat = item.lat ?? item.latitude ?? item.geometry?.coordinates?.[1];
+          let lng = item.lng ?? item.longitude ?? item.geometry?.coordinates?.[0];
+          // Nếu không có tọa độ nhưng có ref_id → gọi Place Detail API
+          if ((lat == null || lng == null) && item.ref_id) {
+            const detail = await RouteManager.getPlaceDetail(item.ref_id);
+            if (detail && detail.lat != null && detail.lng != null) {
+              lat = detail.lat; lng = detail.lng;
+            }
+          }
+          if (lat != null && lng != null && !isNaN(lat) && !isNaN(lng)) {
+            console.log(`[QAP] Geocoded "${address}" → "${q}" → ${lat},${lng}`);
+            return { lat: parseFloat(lat), lng: parseFloat(lng) };
+          }
+        } catch (_) {}
+      }
+      console.warn(`[QAP] Geocode failed for: "${address}"`);
+      return null;
+    }
+
+    const geocodePromises = passengers
+      .filter(p => !_addedIds.has(p.id) && (!p.pickupLat || !p.dropoffLat))
+      .map(async p => {
+        try {
+          if (!p.pickupLat) {
+            const result = await smartGeocode(p.pickupAddress);
+            if (result) {
+              p.pickupLat = result.lat; p.pickupLng = result.lng;
+              const cust = tgCustomers.find(c => c.id === p.id);
+              if (cust) { cust.pickupLat = result.lat; cust.pickupLng = result.lng; }
+            }
+          }
+          if (!p.dropoffLat) {
+            const result = await smartGeocode(p.dropoffAddress);
+            if (result) {
+              p.dropoffLat = result.lat; p.dropoffLng = result.lng;
+              const cust = tgCustomers.find(c => c.id === p.id);
+              if (cust) { cust.dropoffLat = result.lat; cust.dropoffLng = result.lng; }
+            }
+          }
+        } catch (e) { console.warn('[QAP] Geocode failed:', e.message); }
       });
 
+    Promise.all(geocodePromises).then(() => {
+      if (loadEl) loadEl.style.display = 'none';
+      listEl.querySelectorAll('.qap-card').forEach(el => el.remove());
+      if (passengers.length === 0) {
+        const emptyEl = document.createElement('div');
+        emptyEl.className = 'qap-loading';
+        emptyEl.style.padding = '30px 20px';
+        emptyEl.innerHTML = `<div style="font-size:1.5rem;margin-bottom:8px;">📨</div>
+          Chưa có khách hàng từ Telegram<br>
+          <small style="opacity:.6">Gửi /add vào bot để thêm khách</small>`;
+        listEl.appendChild(emptyEl);
+        const badge = document.getElementById('qab-badge');
+        if (badge) badge.textContent = '0';
+        return;
+      }
+      passengers.forEach(p => {
+        const isAdded = _addedIds.has(p.id);
+        const deltaM = isAdded ? null : estimateDelta(p);
+        const card = renderCard(p, deltaM);
+        listEl.appendChild(card);
+      });
       const badge = document.getElementById('qab-badge');
-      if (badge) badge.textContent = MOCK_PASSENGERS.length - _addedIds.size;
-
-      // Tính delta lộ trình thực tế tuần tự (tránh spam API)
-      (async () => {
-        for (const p of MOCK_PASSENGERS) {
-          if (_addedIds.has(p.id)) continue;
-          const deltaEl = document.getElementById(`qap-delta-${p.id}`);
-          if (!deltaEl) continue;
-          try {
-            const deltaM = await estimateDeltaRoute(p, waypoints);
-            const isNeg  = deltaM != null && deltaM < 0;
-            deltaEl.className = 'qap-delta' + (isNeg ? ' negative' : '');
-            deltaEl.title = 'Chênh lệch quãng đường lộ trình thực tế khi thêm khách này';
-            deltaEl.innerHTML = fmtDelta(deltaM);
-          } catch (_) {
-            deltaEl.innerHTML = '?';
-          }
-        }
-      })();
-    }, 150);
+      if (badge) badge.textContent = passengers.filter(p => !_addedIds.has(p.id)).length;
+    });
   }
 
-  /* ── Thêm địa chỉ khách vào sidebar B/C để chỉ đường ── */
-  function addPassenger(passenger) {
+  async function addPassenger(passenger) {
     if (_addedIds.has(passenger.id)) return;
-
-    const btn  = document.getElementById(`qap-add-${passenger.id}`);
+    const btn = document.getElementById(`qap-add-${passenger.id}`);
     const card = document.getElementById(`qap-card-${passenger.id}`);
-    if (btn) { btn.disabled = true; btn.textContent = '✓'; }
+    if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
 
-    // Thêm địa chỉ đón vào mục B, trả vào mục C trong sidebar
+    // Retry geocode nếu chưa có tọa độ (smartGeocode)
+    if (!passenger.pickupLat || !passenger.dropoffLat) {
+      async function tryGeocode(addr) {
+        const queries = [
+          addr,
+          addr.replace(/^\d+\s*/, ''),
+          addr.replace(/[,]/g, ' ').replace(/\s+/g, ' ').trim(),
+        ];
+        const parts = addr.replace(/[,]/g, ' ').split(/\s+/).filter(w => w.length > 1);
+        if (parts.length >= 2) {
+          queries.push(parts.slice(-2).join(' '));
+          queries.push(parts.slice(-3).join(' '));
+        }
+        if (parts.length >= 1) queries.push(parts[parts.length - 1]);
+
+        for (const q of queries) {
+          if (!q || q.length < 2) continue;
+          try {
+            const results = await RouteManager.searchAddress(q);
+            if (!results || results.length === 0) continue;
+            const item = results[0];
+            let lat = item.lat ?? item.latitude ?? item.geometry?.coordinates?.[1];
+            let lng = item.lng ?? item.longitude ?? item.geometry?.coordinates?.[0];
+            if ((lat == null || lng == null) && item.ref_id) {
+              const detail = await RouteManager.getPlaceDetail(item.ref_id);
+              if (detail && detail.lat != null && detail.lng != null) {
+                lat = detail.lat; lng = detail.lng;
+              }
+            }
+            if (lat != null && lng != null && !isNaN(lat) && !isNaN(lng))
+              return { lat: parseFloat(lat), lng: parseFloat(lng) };
+          } catch (_) {}
+        }
+        return null;
+      }
+
+      try {
+        if (!passenger.pickupLat) {
+          const r = await tryGeocode(passenger.pickupAddress);
+          if (r) { passenger.pickupLat = r.lat; passenger.pickupLng = r.lng; }
+        }
+        if (!passenger.dropoffLat) {
+          const r = await tryGeocode(passenger.dropoffAddress);
+          if (r) { passenger.dropoffLat = r.lat; passenger.dropoffLng = r.lng; }
+        }
+        const tgCusts = (typeof TelegramBot !== 'undefined' && TelegramBot.getCustomers) ? TelegramBot.getCustomers() : [];
+        const cust = tgCusts.find(c => c.id === passenger.id);
+        if (cust) {
+          cust.pickupLat = passenger.pickupLat; cust.pickupLng = passenger.pickupLng;
+          cust.dropoffLat = passenger.dropoffLat; cust.dropoffLng = passenger.dropoffLng;
+        }
+      } catch (e) { console.warn('[QAP] Smart geocode in addPassenger failed:', e.message); }
+    }
+
+    if (btn) btn.textContent = '✓';
     if (typeof App !== 'undefined' && App.addPassengerToRoute) {
       App.addPassengerToRoute(passenger);
     }
-
     _addedIds.add(passenger.id);
     if (card) card.classList.add('added');
-
+    if (typeof TelegramBot !== 'undefined' && TelegramBot.markCustomerAdded) {
+      TelegramBot.markCustomerAdded(passenger.id);
+    }
+    const tgCustomers = (typeof TelegramBot !== 'undefined' && TelegramBot.getCustomers)
+      ? TelegramBot.getCustomers() : [];
+    const remaining = tgCustomers.filter(c => c.status === 'pending').length;
     const badge = document.getElementById('qab-badge');
-    if (badge) badge.textContent = MOCK_PASSENGERS.length - _addedIds.size;
+    if (badge) badge.textContent = remaining;
 
-    const deltaEl = document.getElementById(`qap-delta-${passenger.id}`);
-    if (deltaEl) deltaEl.title = 'Đã thêm vào B/C';
-
-    UI.toast(`✅ Đã thêm ${passenger.name} vào mục B/C — nhấn Tối ưu để cập nhật lộ trình`, 'success', 4000);
+    // Auto-optimize nếu có tọa độ hợp lệ
+    if (passenger.pickupLat && passenger.dropoffLat) {
+      UI.toast(`✅ Đã thêm ${passenger.name} — đang tối ưu lộ trình...`, 'success', 3000);
+      setTimeout(() => {
+        if (typeof App !== 'undefined' && App.runOptimize) App.runOptimize();
+      }, 500);
+    } else {
+      UI.toast(`⚠️ Đã thêm ${passenger.name} (chưa có tọa độ) — cần xác nhận địa chỉ trên sidebar`, 'warn', 5000);
+    }
   }
 
-  /* ── Public API ── */
   function show(waypoints, totalDistM) {
-    _currentWaypoints  = [...waypoints];
+    _currentWaypoints = [...waypoints];
     _currentRouteDistM = totalDistM;
     const backdrop = document.getElementById('qap-backdrop');
     if (backdrop) backdrop.classList.remove('hidden');
     renderList(waypoints, totalDistM);
   }
-
   function hidePanel() {
     const backdrop = document.getElementById('qap-backdrop');
     if (backdrop) backdrop.classList.add('hidden');
   }
-
   function hide() {
     const btn = document.getElementById('nav-quick-add-btn');
     if (btn) btn.style.display = 'none';
     hidePanel();
     _addedIds.clear();
   }
-
   function showBtn(waypoints, totalDistM) {
-    _currentWaypoints  = [...waypoints];
+    _currentWaypoints = [...waypoints];
     _currentRouteDistM = totalDistM;
-
-    const btn      = document.getElementById('nav-quick-add-btn');
+    const btn = document.getElementById('nav-quick-add-btn');
     const closeBtn = document.getElementById('qap-close-btn');
     const backdrop = document.getElementById('qap-backdrop');
-
-    if (btn)      { btn.style.display = ''; btn.onclick = () => show(_currentWaypoints, _currentRouteDistM); }
+    if (btn) { btn.style.display = ''; btn.onclick = () => show(_currentWaypoints, _currentRouteDistM); }
     if (closeBtn) closeBtn.onclick = hidePanel;
     if (backdrop) backdrop.addEventListener('click', e => { if (e.target === backdrop) hidePanel(); });
+    const tgCustomers = (typeof TelegramBot !== 'undefined' && TelegramBot.getCustomers)
+      ? TelegramBot.getCustomers() : [];
+    const pending = tgCustomers.filter(c => c.status === 'pending').length;
+    const badge = document.getElementById('qab-badge');
+    if (badge) badge.textContent = pending;
   }
 
   return { showBtn, hide, hidePanel };

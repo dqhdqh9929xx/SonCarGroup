@@ -539,7 +539,7 @@ html, body {
 #toast-container {
   position: fixed; bottom: 24px; right: 24px;
   display: flex; flex-direction: column; gap: 8px;
-  z-index: 300;
+  z-index: 10000;
 }
 .toast {
   background: #1a2236; border: 1px solid var(--border);
@@ -1060,5 +1060,482 @@ html, body {
 @keyframes deltaPulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: .35; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Telegram Bot Panel Styles
+═══════════════════════════════════════════════════════════ */
+
+/* ── Panel badge ── */
+.tg-badge {
+  background: linear-gradient(135deg, #0088cc, #00bbff) !important;
+  font-size: .85rem !important;
+}
+
+.tg-count-badge {
+  background: linear-gradient(135deg, #0088cc, #00bbff) !important;
+  color: #fff !important;
+}
+.tg-count-badge.has-new {
+  animation: tgPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes tgPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(0,136,204,0); }
+  50%      { transform: scale(1.2); box-shadow: 0 0 12px rgba(0,136,204,.5); }
+}
+
+/* ── Header right section ── */
+.tg-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.tg-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .7rem;
+  color: var(--text-muted);
+}
+
+.tg-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  transition: all .3s ease;
+}
+.tg-status-dot.active {
+  background: #00e676;
+  box-shadow: 0 0 8px rgba(0,230,118,.6);
+  animation: tgDotPulse 2s ease-in-out infinite;
+}
+.tg-status-dot.inactive {
+  background: #666;
+  box-shadow: none;
+}
+
+@keyframes tgDotPulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(0,230,118,.4); }
+  50%      { box-shadow: 0 0 12px rgba(0,230,118,.8); }
+}
+
+.tg-status-text {
+  font-size: .68rem;
+  color: var(--text-muted);
+}
+
+/* ── Toggle button ── */
+.tg-toggle-btn {
+  background: rgba(0,136,204,.15);
+  border: 1px solid rgba(0,136,204,.3);
+  color: #00bbff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: .7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .25s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.tg-toggle-btn:hover {
+  background: rgba(0,136,204,.25);
+  border-color: rgba(0,136,204,.5);
+  transform: translateY(-1px);
+}
+.tg-toggle-btn.active {
+  background: rgba(255,159,67,.15);
+  border-color: rgba(255,159,67,.3);
+  color: #ff9f43;
+}
+.tg-toggle-btn.active:hover {
+  background: rgba(255,159,67,.25);
+}
+
+/* ── Token input section ── */
+.tg-token-section {
+  padding: 10px 14px;
+  border-top: 1px solid rgba(255,255,255,.06);
+  animation: tgSlideDown .3s ease;
+}
+
+@keyframes tgSlideDown {
+  from { opacity: 0; transform: translateY(-8px); max-height: 0; }
+  to   { opacity: 1; transform: translateY(0);    max-height: 80px; }
+}
+
+.tg-token-label {
+  font-size: .72rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.tg-token-row {
+  display: flex;
+  gap: 6px;
+}
+
+.tg-token-input {
+  flex: 1;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: .75rem;
+  color: var(--text);
+  outline: none;
+  font-family: 'Courier New', monospace;
+  transition: border-color .2s;
+}
+.tg-token-input:focus {
+  border-color: rgba(0,136,204,.5);
+}
+.tg-token-input::placeholder {
+  color: rgba(255,255,255,.25);
+}
+
+.tg-token-save {
+  background: linear-gradient(135deg, #0088cc, #00bbff);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  color: #fff;
+  font-size: .75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+  font-family: inherit;
+}
+.tg-token-save:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(0,136,204,.4);
+}
+
+/* ── Customer list ── */
+.tg-customer-list {
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,136,204,.25) transparent;
+}
+.tg-customer-list::-webkit-scrollbar { width: 4px; }
+.tg-customer-list::-webkit-scrollbar-thumb {
+  background: rgba(0,136,204,.25); border-radius: 2px;
+}
+
+/* ── Empty state ── */
+.tg-empty {
+  text-align: center;
+  padding: 20px 14px;
+  color: var(--text-muted);
+  font-size: .78rem;
+}
+.tg-empty-icon {
+  font-size: 1.6rem;
+  margin-bottom: 6px;
+  opacity: .5;
+}
+.tg-empty small {
+  display: block;
+  margin-top: 4px;
+  font-size: .68rem;
+  opacity: .6;
+}
+
+/* ── Customer card ── */
+.tg-customer-card {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  transition: all .3s ease;
+  animation: tgCardSlideIn .4s ease;
+}
+.tg-customer-card:hover {
+  background: rgba(0,136,204,.06);
+}
+.tg-customer-card.added {
+  opacity: .55;
+  background: rgba(0,230,118,.04);
+}
+
+@keyframes tgCardSlideIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Card header ── */
+.tg-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.tg-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0088cc, #00bbff);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; font-weight: 800; color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,136,204,.35);
+}
+
+.tg-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tg-card-name {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tg-card-phone {
+  font-size: .68rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.tg-card-time {
+  font-size: .65rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  opacity: .7;
+}
+
+/* ── Card addresses ── */
+.tg-card-addresses {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 8px;
+  padding-left: 46px;
+}
+
+.tg-card-addr {
+  font-size: .7rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  line-height: 1.35;
+}
+
+.tg-addr-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.tg-addr-dot.pickup {
+  background: #00e676;
+  box-shadow: 0 0 5px rgba(0,230,118,.4);
+}
+.tg-addr-dot.dropoff {
+  background: #00bbff;
+  box-shadow: 0 0 5px rgba(0,187,255,.4);
+}
+
+/* ── Card footer ── */
+.tg-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 46px;
+}
+
+/* ── Status badges ── */
+.tg-status-badge {
+  font-size: .65rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+.tg-status-badge.geocoding {
+  background: rgba(255,193,7,.12);
+  color: #ffc107;
+  border: 1px solid rgba(255,193,7,.2);
+  animation: tgGeocodePulse 1.5s ease-in-out infinite;
+}
+.tg-status-badge.ready {
+  background: rgba(0,230,118,.1);
+  color: #00e676;
+  border: 1px solid rgba(0,230,118,.2);
+}
+.tg-status-badge.added {
+  background: rgba(0,187,255,.1);
+  color: #00bbff;
+  border: 1px solid rgba(0,187,255,.2);
+}
+.tg-status-badge.error {
+  background: rgba(255,82,82,.1);
+  color: #ff5252;
+  border: 1px solid rgba(255,82,82,.2);
+}
+
+@keyframes tgGeocodePulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .5; }
+}
+
+/* ── Add button ── */
+.tg-add-btn {
+  padding: 5px 14px;
+  background: linear-gradient(135deg, #0088cc, #00bbff);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .25s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.tg-add-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,136,204,.45);
+}
+.tg-add-btn:disabled {
+  background: rgba(255,255,255,.08);
+  color: var(--text-muted);
+  cursor: default;
+  box-shadow: none;
+}
+.tg-add-btn.ready {
+  background: linear-gradient(135deg, #00c853, #00e676);
+  box-shadow: 0 2px 10px rgba(0,200,83,.3);
+}
+.tg-add-btn.ready:hover {
+  box-shadow: 0 4px 18px rgba(0,200,83,.5);
+}
+
+/* ── Retry button ── */
+.tg-retry-btn {
+  padding: 5px 10px;
+  background: rgba(255,159,67,.15);
+  border: 1px solid rgba(255,159,67,.3);
+  border-radius: 8px;
+  color: #ff9f43;
+  font-size: .72rem;
+  cursor: pointer;
+  transition: all .25s ease;
+  font-family: inherit;
+}
+.tg-retry-btn:hover {
+  background: rgba(255,159,67,.25);
+  transform: translateY(-1px);
+}
+
+/* ── Format help section ── */
+.tg-format-help {
+  padding: 8px 14px 10px;
+  border-top: 1px solid rgba(255,255,255,.05);
+  background: rgba(0,136,204,.04);
+  border-radius: 0 0 12px 12px;
+}
+
+.tg-format-title {
+  font-size: .68rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.tg-format-help code {
+  display: block;
+  font-size: .65rem;
+  color: #00bbff;
+  background: rgba(0,136,204,.1);
+  border: 1px solid rgba(0,136,204,.15);
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-family: 'Courier New', monospace;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Nav-mode Telegram Button & Overlay
+═══════════════════════════════════════════════════════════ */
+
+/* ── Nav Telegram button (left side, above quick-add) ── */
+.nav-tg-btn {
+  pointer-events: all;
+  position: absolute;
+  left: 14px;
+  bottom: 142px;        /* above quick-add button (80+52+10) */
+  width: 52px; height: 52px;
+  background: linear-gradient(135deg, #0088cc, #00bbff);
+  border: none; border-radius: 14px;
+  color: #fff; font-size: 1.4rem;
+  cursor: pointer; transition: var(--trans);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,136,204,.45);
+  z-index: 510;
+  animation: navSlideDown .4s cubic-bezier(.34,1.56,.64,1);
+}
+.nav-tg-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 28px rgba(0,136,204,.6);
+}
+.nav-tg-btn:active { transform: scale(.95); }
+
+.nav-tg-badge {
+  position: absolute; top: -5px; right: -5px;
+  background: #ff5252; color: #fff;
+  border-radius: 50%; width: 18px; height: 18px;
+  font-size: .62rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid #0a0e1a;
+}
+.nav-tg-badge.has-new {
+  animation: tgPulse 1.5s ease-in-out infinite;
+}
+
+/* ── Nav Telegram backdrop ── */
+.nav-tg-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+  z-index: 600;
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: qapFadeIn .25s ease;
+}
+.nav-tg-backdrop.hidden { display: none; }
+
+/* ── Nav Telegram panel ── */
+.nav-tg-panel {
+  background: #0f1520;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 75vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -8px 40px rgba(0,0,0,.6);
+  animation: qapSlideUp .35s cubic-bezier(.34,1.56,.64,1);
+  overflow: hidden;
+}
+
+.nav-tg-list {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,136,204,.25) transparent;
+  max-height: 55vh;
+}
+.nav-tg-list::-webkit-scrollbar { width: 4px; }
+.nav-tg-list::-webkit-scrollbar-thumb {
+  background: rgba(0,136,204,.25); border-radius: 2px;
 }
 

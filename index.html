@@ -96,6 +96,42 @@
         </div>
       </div>
 
+      <!-- Telegram Bot Panel -->
+      <div class="panel tg-panel" id="panel-telegram">
+        <div class="panel-header">
+          <div class="marker-badge tg-badge">📨</div>
+          <span class="panel-title">Telegram Bot <span class="count-badge tg-count-badge" id="tg-count">0</span></span>
+          <div class="tg-header-right">
+            <div class="tg-status-indicator">
+              <span class="tg-status-dot inactive" id="tg-status-dot"></span>
+              <span class="tg-status-text" id="tg-status-text">Đã tắt</span>
+            </div>
+            <button class="tg-toggle-btn" id="tg-toggle">▶ Bật Bot</button>
+          </div>
+        </div>
+        <!-- Token input (hidden by default if token exists) -->
+        <div class="tg-token-section" id="tg-token-section" style="display:none;">
+          <div class="tg-token-label">🔑 Bot Token từ @BotFather:</div>
+          <div class="tg-token-row">
+            <input type="password" id="tg-token-input" class="tg-token-input" placeholder="Dán token vào đây..." autocomplete="off" />
+            <button class="tg-token-save" id="tg-token-save">Lưu</button>
+          </div>
+        </div>
+        <!-- Customer list -->
+        <div class="tg-customer-list" id="tg-customer-list">
+          <div class="tg-empty">
+            <div class="tg-empty-icon">📨</div>
+            <span>Chưa có khách hàng từ Telegram</span>
+            <small>Gửi /add vào bot để thêm khách</small>
+          </div>
+        </div>
+        <!-- Format help -->
+        <div class="tg-format-help">
+          <div class="tg-format-title">📋 Format gửi bot:</div>
+          <code>/add Tên | SĐT | Địa chỉ đón | Địa chỉ trả</code>
+        </div>
+      </div>
+
       <!-- Optimize Button -->
       <button class="btn-optimize" id="btn-optimize" disabled>
         <span>🚗 Tối ưu hóa lộ trình</span>
@@ -211,15 +247,15 @@
 
 </div>
 
-<!-- Quick Add Passenger Panel -->
+<!-- Quick Add Passenger Panel (Telegram) -->
 <div class="qap-backdrop hidden" id="qap-backdrop">
   <div class="qap-panel" id="qap-panel">
     <div class="qap-handle"></div>
     <div class="qap-header">
       <div>
         <div class="qap-title">
-          <div class="qap-title-icon">👤</div>
-          Thêm hành khách nhanh
+          <div class="qap-title-icon">📨</div>
+          Khách hàng từ Telegram
         </div>
         <div class="qap-subtitle">Chọn khách để thêm vào lộ trình hiện tại</div>
       </div>
@@ -248,6 +284,7 @@
 <script src="js/nearbyManager.js?v=20260424d"></script>
 <script src="js/geneticAlgorithm.js?v=20260424d"></script>
 <script src="js/navigationManager.js?v=20260424j"></script>
-<script src="js/app.js?v=20260424h"></script>
+<script src="js/telegramBot.js?v=20260425a"></script>
+<script src="js/app.js?v=20260425a"></script>
 </body>
 </html>
